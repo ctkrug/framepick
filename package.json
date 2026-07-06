@@ -1,0 +1,28 @@
+{
+  "name": "framepick",
+  "version": "0.1.0",
+  "description": "Client-side video keyframe extraction with scene detection via WebCodecs — no upload, no server.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/",
+    "serve": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "webcodecs",
+    "video",
+    "keyframes",
+    "scene-detection",
+    "client-side",
+    "thumbnails"
+  ],
+  "author": "Charlie Krug",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ctkrug/framepick.git"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
