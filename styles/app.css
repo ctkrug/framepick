@@ -1,0 +1,239 @@
+/* Framepick — cutting-room contact sheet. Tokens mirror docs/DESIGN.md exactly. */
+
+:root {
+  --bg: #efe9dd;
+  --surface-1: #f7f3ea;
+  --surface-2: #e4dccb;
+  --ink: #211d17;
+  --muted: #6f6656;
+  --line: #d3c9b4;
+  --accent: #e2452b;
+  --accent-ink: #a8321d;
+  --support: #2f4a53;
+  --success: #3f7d55;
+  --danger: #b23a2a;
+
+  --radius-ctl: 4px;
+  --radius-card: 8px;
+
+  --shadow-card: 0 1px 0 #ffffffcc inset, 0 2px 8px rgba(33, 29, 23, 0.1),
+    0 12px 32px rgba(33, 29, 23, 0.08);
+
+  --font-display: Fraunces, "Times New Roman", serif;
+  --font-ui: Inter, system-ui, -apple-system, sans-serif;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background-color: var(--bg);
+  /* Paper treatment: a warm vignette + a faint fibrous grain so it never reads as a flat fill. */
+  background-image: radial-gradient(
+      120% 90% at 50% -10%,
+      rgba(255, 252, 245, 0.9),
+      rgba(239, 233, 221, 0) 55%
+    ),
+    radial-gradient(100% 120% at 100% 110%, rgba(47, 74, 83, 0.06), rgba(239, 233, 221, 0) 60%);
+  background-attachment: fixed;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(16px, 4vw, 40px);
+}
+
+/* ---- Header / wordmark -------------------------------------------------- */
+
+.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(31px, 6vw, 44px);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  margin: 0;
+  position: relative;
+}
+
+.wordmark .dot {
+  color: var(--accent);
+}
+
+.tagline {
+  color: var(--muted);
+  font-size: 15px;
+  max-width: 46ch;
+}
+
+/* ---- Layout ------------------------------------------------------------- */
+
+.stage {
+  display: grid;
+  gap: clamp(16px, 3vw, 28px);
+  grid-template-columns: 1fr;
+  margin-top: 28px;
+}
+
+@media (min-width: 900px) {
+  .stage.has-results {
+    grid-template-columns: 300px 1fr;
+    align-items: start;
+  }
+}
+
+/* ---- Dropzone ----------------------------------------------------------- */
+
+.dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  min-height: 46vh;
+  padding: 32px;
+  background: var(--surface-1);
+  border: 2px dashed var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: border-color 180ms var(--ease), background 180ms var(--ease),
+    transform 180ms var(--ease);
+}
+
+.dropzone.dragover {
+  border-color: var(--accent);
+  background: #fbf7ee;
+  transform: translateY(-2px);
+}
+
+.dropzone h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  margin: 0;
+}
+
+.dropzone p {
+  color: var(--muted);
+  margin: 0;
+  max-width: 42ch;
+}
+
+/* ---- Buttons / controls ------------------------------------------------- */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent-ink);
+  border-radius: var(--radius-ctl);
+  padding: 12px 20px;
+  min-height: 44px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--accent-ink);
+  transition: transform 120ms var(--ease), box-shadow 120ms var(--ease),
+    background 120ms var(--ease);
+}
+
+.btn:hover {
+  background: #ec5138;
+}
+
+.btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--accent-ink);
+}
+
+.btn:focus-visible,
+.file-input:focus-visible + .btn {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn.ghost {
+  color: var(--support);
+  background: transparent;
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.btn.ghost:hover {
+  background: var(--surface-2);
+}
+
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- Notices ------------------------------------------------------------ */
+
+.notice {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: var(--radius-ctl);
+  border: 1px solid var(--line);
+  background: var(--surface-1);
+  font-size: 14px;
+}
+
+.notice.warn {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: #f7ebe6;
+}
+
+.notice[hidden] {
+  display: none;
+}
+
+.footer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer a {
+  color: var(--support);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
