@@ -1,37 +1,274 @@
-// Framepick app entry — wires the dropzone to the (forthcoming) decode + analysis pipeline.
+// Framepick app entry — wires the dropzone to the WebCodecs decode + analysis pipeline.
 //
-// SCOPE scaffold: this shell feature-detects WebCodecs, accepts a file via drag/drop or the
-// picker, and reports what it received. The real decode → signature → scene-detection flow
-// (src/lib/*, plus a Web Worker running the WebCodecs VideoDecoder) is built out in the BUILD
-// phase against docs/BACKLOG.md.
+// The heavy work (demux + decode + signature) runs in a module worker (src/worker/analyze.worker
+// .js). This module owns the DOM: the dropzone, live progress, the sensitivity slider (which
+// re-segments from cached signatures — no re-decode), the contact-sheet render, stats, and export.
 
 import { detectSupport } from "./lib/support.js";
-import { formatTimecode } from "./lib/timecode.js";
+import { formatTimecode, timecodeSlug } from "./lib/timecode.js";
+import { extractKeyframes } from "./lib/scenes.js";
+import { computeStats } from "./lib/stats.js";
+import { thresholdForSensitivity, DEFAULT_SENSITIVITY } from "./lib/sensitivity.js";
+import { zipStore } from "./lib/zip.js";
 
 const els = {
+  stage: document.getElementById("stage"),
   dropzone: document.getElementById("dropzone"),
   fileInput: document.getElementById("fileInput"),
   pickBtn: document.getElementById("pickBtn"),
+  fileName: document.getElementById("fileName"),
+  controls: document.getElementById("controls"),
+  sensitivity: document.getElementById("sensitivity"),
+  sensValue: document.getElementById("sensValue"),
+  statDuration: document.getElementById("statDuration"),
+  statSampled: document.getElementById("statSampled"),
+  statScenes: document.getElementById("statScenes"),
+  statKept: document.getElementById("statKept"),
+  downloadAll: document.getElementById("downloadAll"),
+  results: document.getElementById("results"),
+  progress: document.getElementById("progress"),
+  progressFill: document.getElementById("progressFill"),
+  progressPct: document.getElementById("progressPct"),
+  progressLabel: document.getElementById("progressLabel"),
+  filmstrip: document.getElementById("filmstrip"),
+  resultsEmpty: document.getElementById("resultsEmpty"),
   unsupported: document.getElementById("unsupported"),
-  status: document.getElementById("status"),
+  error: document.getElementById("error"),
+  toast: document.getElementById("toast"),
 };
 
-function showStatus(message) {
-  els.status.hidden = false;
-  els.status.textContent = message;
+/** Analysis state for the current file. Signatures + bitmaps are cached so the slider is cheap. */
+const state = {
+  samples: [], // { index, time, signature, bitmap, width, height }
+  keyframes: [],
+  meta: null, // { durationSeconds, width, height }
+  worker: null,
+  toastTimer: 0,
+};
+
+// ---- Small UI helpers -----------------------------------------------------
+
+function showError(message) {
+  els.error.textContent = message;
+  els.error.hidden = false;
 }
 
-/** Placeholder handoff — BUILD replaces this with the worker-driven decode pipeline. */
-function handleFile(file) {
-  if (!file) return;
-  const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-  showStatus(
-    `Loaded “${file.name}” (${sizeMb} MB, ${file.type || "unknown type"}). ` +
-      `Decode pipeline lands in the next build — see docs/BACKLOG.md.`,
-  );
-  // Prove the pure lib is wired and callable from the shell.
-  console.info("[framepick] first frame timecode would render as", formatTimecode(0));
+function clearError() {
+  els.error.hidden = true;
+  els.error.textContent = "";
 }
+
+function showToast(message) {
+  els.toast.textContent = message;
+  els.toast.classList.add("show");
+  clearTimeout(state.toastTimer);
+  state.toastTimer = setTimeout(() => els.toast.classList.remove("show"), 1800);
+}
+
+function setProgress(fraction) {
+  const pct = Math.round(Math.min(1, Math.max(0, fraction)) * 100);
+  els.progressFill.style.width = `${pct}%`;
+  els.progressPct.textContent = `${pct}%`;
+}
+
+/** Draw an ImageBitmap onto a fresh canvas sized to the bitmap (crisp, export-quality). */
+function bitmapToCanvas(bitmap) {
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext("2d").drawImage(bitmap, 0, 0);
+  return canvas;
+}
+
+function canvasToPngBytes(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("PNG encode failed"));
+        return;
+      }
+      blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)), reject);
+    }, "image/png");
+  });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ---- Analysis lifecycle ---------------------------------------------------
+
+function resetState() {
+  if (state.worker) {
+    state.worker.terminate();
+    state.worker = null;
+  }
+  for (const s of state.samples) s.bitmap?.close?.();
+  state.samples = [];
+  state.keyframes = [];
+  state.meta = null;
+  els.filmstrip.innerHTML = "";
+}
+
+function startAnalysis(file) {
+  if (!file) return;
+  if (file.type && !file.type.startsWith("video/")) {
+    showError(`“${file.name}” isn’t a video file. Drop an MP4/MOV (H.264/HEVC) clip.`);
+    return;
+  }
+  clearError();
+  resetState();
+
+  els.fileName.textContent = file.name;
+  els.fileName.hidden = false;
+  els.stage.classList.add("has-results");
+  els.results.hidden = false;
+  els.controls.hidden = true;
+  els.resultsEmpty.hidden = true;
+  els.progress.hidden = false;
+  els.progressLabel.textContent = "Decoding on-device…";
+  setProgress(0);
+
+  const worker = new Worker(new URL("./worker/analyze.worker.js", import.meta.url), {
+    type: "module",
+  });
+  state.worker = worker;
+  worker.onmessage = (e) => onWorkerMessage(e.data);
+  worker.onerror = (e) => {
+    showError("The analysis worker failed to start. Try a recent Chrome, Edge, or Safari.");
+    els.progress.hidden = true;
+    e.preventDefault?.();
+  };
+  worker.postMessage({ type: "analyze", file });
+}
+
+function onWorkerMessage(msg) {
+  switch (msg?.type) {
+    case "meta":
+      state.meta = { durationSeconds: msg.durationSeconds, width: msg.width, height: msg.height };
+      els.progressLabel.textContent = "Analyzing frames…";
+      break;
+    case "progress":
+      setProgress(msg.fraction);
+      break;
+    case "sample":
+      state.samples.push({
+        index: msg.index,
+        time: msg.time,
+        signature: msg.signature,
+        bitmap: msg.bitmap,
+        width: msg.width,
+        height: msg.height,
+      });
+      break;
+    case "done":
+      finishAnalysis();
+      break;
+    case "error":
+      showError(msg.message || "Could not decode this file.");
+      els.progress.hidden = true;
+      break;
+    default:
+      break;
+  }
+}
+
+function finishAnalysis() {
+  els.progress.hidden = true;
+  if (state.samples.length === 0) {
+    showError("No frames could be read from this file. It may be DRM-protected or corrupt.");
+    return;
+  }
+  els.controls.hidden = false;
+  resegment();
+}
+
+// ---- Segmentation + render (cheap; re-run on slider move, no re-decode) ----
+
+function resegment() {
+  const threshold = thresholdForSensitivity(Number(els.sensitivity.value));
+  state.keyframes = extractKeyframes(state.samples, { threshold });
+  const stats = computeStats(state.samples, {
+    threshold,
+    durationSeconds: state.meta?.durationSeconds,
+  });
+  renderStats(stats);
+  renderFilmstrip(state.keyframes);
+  els.downloadAll.disabled = state.keyframes.length === 0;
+  els.resultsEmpty.hidden = state.keyframes.length > 0;
+}
+
+function renderStats(stats) {
+  els.statDuration.textContent = formatTimecode(stats.durationSeconds);
+  els.statSampled.textContent = String(stats.framesSampled);
+  els.statScenes.textContent = String(stats.scenesFound);
+  els.statKept.textContent = String(stats.keyframesKept);
+}
+
+function renderFilmstrip(keyframes) {
+  const frag = document.createDocumentFragment();
+  for (const kf of keyframes) {
+    const cell = document.createElement("div");
+    cell.className = "frame-cell";
+    cell.setAttribute("role", "listitem");
+
+    cell.appendChild(bitmapToCanvas(kf.bitmap));
+
+    const tc = document.createElement("span");
+    tc.className = "timecode";
+    tc.textContent = formatTimecode(kf.time);
+    cell.appendChild(tc);
+
+    const dl = document.createElement("button");
+    dl.type = "button";
+    dl.className = "frame-dl";
+    dl.setAttribute("aria-label", `Download keyframe at ${formatTimecode(kf.time)} as PNG`);
+    dl.innerHTML = "&darr;";
+    dl.addEventListener("click", () => exportOne(kf));
+    cell.appendChild(dl);
+
+    frag.appendChild(cell);
+  }
+  els.filmstrip.replaceChildren(frag);
+}
+
+// ---- Export ---------------------------------------------------------------
+
+async function exportOne(kf) {
+  const canvas = bitmapToCanvas(kf.bitmap);
+  const bytes = await canvasToPngBytes(canvas);
+  downloadBlob(new Blob([bytes], { type: "image/png" }), `framepick-${timecodeSlug(kf.time)}.png`);
+  showToast("Frame saved");
+}
+
+async function exportAll() {
+  if (state.keyframes.length === 0) return;
+  els.downloadAll.disabled = true;
+  els.downloadAll.textContent = "Bundling…";
+  try {
+    const files = [];
+    for (const kf of state.keyframes) {
+      const bytes = await canvasToPngBytes(bitmapToCanvas(kf.bitmap));
+      files.push({ name: `framepick-${timecodeSlug(kf.time)}.png`, data: bytes });
+    }
+    downloadBlob(new Blob([zipStore(files)], { type: "application/zip" }), "framepick-keyframes.zip");
+    showToast(`Saved ${files.length} keyframes`);
+  } catch (err) {
+    showError(`Could not build the zip: ${err.message}`);
+  } finally {
+    els.downloadAll.textContent = "Download all as .zip";
+    els.downloadAll.disabled = state.keyframes.length === 0;
+  }
+}
+
+// ---- Wiring ---------------------------------------------------------------
 
 function initDropzone() {
   const dz = els.dropzone;
@@ -44,7 +281,7 @@ function initDropzone() {
     }
   });
 
-  els.fileInput.addEventListener("change", () => handleFile(els.fileInput.files[0]));
+  els.fileInput.addEventListener("change", () => startAnalysis(els.fileInput.files[0]));
 
   ["dragenter", "dragover"].forEach((type) =>
     dz.addEventListener(type, (e) => {
@@ -59,10 +296,17 @@ function initDropzone() {
       dz.classList.remove("dragover");
     }),
   );
-  dz.addEventListener("drop", (e) => {
-    const file = e.dataTransfer?.files?.[0];
-    handleFile(file);
+  dz.addEventListener("drop", (e) => startAnalysis(e.dataTransfer?.files?.[0]));
+}
+
+function initControls() {
+  els.sensitivity.value = String(DEFAULT_SENSITIVITY);
+  els.sensValue.textContent = String(DEFAULT_SENSITIVITY);
+  els.sensitivity.addEventListener("input", () => {
+    els.sensValue.textContent = els.sensitivity.value;
+    if (state.samples.length > 0) resegment();
   });
+  els.downloadAll.addEventListener("click", exportAll);
 }
 
 function main() {
@@ -75,6 +319,7 @@ function main() {
     return;
   }
   initDropzone();
+  initControls();
 }
 
 main();
