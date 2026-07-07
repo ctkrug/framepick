@@ -21,7 +21,7 @@ somewhere). Framepick does the whole pipeline **client-side**:
 
 - **Real decode, not screenshots.** It demuxes the container and feeds encoded chunks to a
   hardware-accelerated `VideoDecoder`, walking actual decoded frames — not `<video>` seeks.
-- **Scene detection in the browser.** Each frame is reduced to a downscaled luma+chroma
+- **Scene detection in the browser.** Each sampled frame is reduced to a downscaled luma-grid
   signature; large frame-to-frame distances mark cuts. Near-duplicate keyframes are collapsed so
   you get *shots*, not every frame.
 - **Zero data exfiltration.** Everything runs in a Web Worker on-device. A 200 MB clip is decoded
@@ -40,7 +40,8 @@ somewhere). Framepick does the whole pipeline **client-side**:
 - **Vanilla JavaScript (ES modules)** — no framework, no bundler required to run.
 - **[WebCodecs](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API)** —
   `VideoDecoder` for hardware-accelerated frame decode.
-- **[mp4box.js](https://github.com/gpac/mp4box.js)** — MP4/MOV demuxing to feed the decoder.
+- **[mp4box.js](https://github.com/gpac/mp4box.js)** — MP4/MOV demuxing to feed the decoder,
+  vendored under `vendor/` (BSD-3) so the site needs no CDN and works fully offline.
 - **Web Workers + `OffscreenCanvas`** — analysis stays off the UI thread.
 - **[`node --test`](https://nodejs.org/api/test.html)** — pure-logic units (timecode, frame
   distance, scene segmentation, dedup) with no browser needed.
@@ -62,11 +63,23 @@ python3 -m http.server 8000   # or any static file server
 WebCodecs support is required (Chrome/Edge 94+, recent Safari). Framepick detects unsupported
 browsers and says so instead of failing silently.
 
+## Hosting
+
+Framepick is a self-contained static bundle — copy the repository contents (everything except
+`test/` and dev config) behind any static host and point at `index.html`. **Every asset path is
+relative**, so it also works unchanged under a sub-path (e.g. `https://apps.example.com/framepick/`)
+with no rewrite. There is no build step and no server tier.
+
 ## Test
 
 ```bash
-npm test        # runs the pure-logic suite with node --test
+npm test        # pure-logic suite: timecode, signatures, sampler, scenes,
+                # sensitivity→threshold, stats invariant, and the ZIP writer
 ```
+
+The browser layer (WebCodecs decode, workers, DOM) is verified manually and end-to-end against a
+generated multi-scene MP4 in headless Chromium; the pure-logic core above carries the automated
+correctness burden.
 
 ## Roadmap
 
