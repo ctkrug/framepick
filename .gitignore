@@ -28,3 +28,6 @@ coverage/
 *.webm
 *.mkv
 !docs/**/*.webm
+
+# Assembled deploy bundle (built by build.mjs)
+site/
