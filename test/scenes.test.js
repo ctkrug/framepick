@@ -84,3 +84,33 @@ test("extractKeyframes runs the whole pipeline", () => {
     [0.0, 1.5],
   );
 });
+
+// ---- Adversarial / degenerate inputs --------------------------------------
+
+test("a single-frame clip yields exactly one scene and one keyframe", () => {
+  const one = [frame(0, 0, 0.5)];
+  assert.deepEqual(detectCuts(one, 0.1), [0]);
+  assert.deepEqual(segmentScenes(detectCuts(one, 0.1), 1), [{ start: 0, end: 1 }]);
+  assert.equal(extractKeyframes(one).length, 1);
+  assert.equal(adjacentDistances(one).length, 0);
+});
+
+test("a NaN threshold registers no cuts (single scene), never throws", () => {
+  // Every distance comparison against NaN is false, so the clip stays one scene.
+  assert.deepEqual(detectCuts(twoScenes, Number.NaN), [0]);
+  assert.equal(extractKeyframes(twoScenes, { threshold: Number.NaN }).length, 1);
+});
+
+test("a zero threshold cuts at every non-identical adjacent pair", () => {
+  // dist >= 0 is always true, so each frame after the first starts a scene.
+  assert.deepEqual(detectCuts(twoScenes, 0), [0, 1, 2, 3, 4, 5]);
+});
+
+test("empty and default-option calls never throw", () => {
+  assert.deepEqual(pickKeyframes([], 0.1), []);
+  assert.deepEqual(dedupeKeyframes([]), []);
+  assert.deepEqual(extractKeyframes([]), []);
+  assert.deepEqual(segmentScenes([0], 0), []);
+  // dedupeKeyframes with no opts uses its defaults without crashing.
+  assert.equal(dedupeKeyframes(pickKeyframes(twoScenes, 0.5)).length, 2);
+});
