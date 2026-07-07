@@ -70,6 +70,19 @@ test("stored CRC in the local header matches crc32 of the data", () => {
   assert.equal(view.getUint32(14, true), crc32(data));
 });
 
+test("filenames are flagged UTF-8 so non-ASCII names decode correctly", () => {
+  const name = "framepick-café-🎬.png";
+  const zip = zipStore([{ name, data: bytes("frame") }]);
+  const view = new DataView(zip.buffer);
+  // General-purpose bit 11 (0x0800) must be set in the local header to declare a
+  // UTF-8 filename; without it extractors fall back to CP437 and mangle the name.
+  assert.ok(view.getUint16(6, true) & 0x0800, "local header UTF-8 flag set");
+  // …and in the central directory header (offset 8), located via the EOCD pointer.
+  const centralOff = view.getUint32(zip.length - 22 + 16, true);
+  assert.ok(view.getUint16(centralOff + 8, true) & 0x0800, "central header UTF-8 flag set");
+  assert.equal(readZip(zip)[0].name, name);
+});
+
 test("an empty file list produces a valid empty archive", () => {
   const zip = zipStore([]);
   assert.equal(zip.length, 22); // EOCD only
