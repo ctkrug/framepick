@@ -43,5 +43,6 @@ export function shouldSample(lastKeptTime, time, targetFps) {
  */
 export function estimateSampleCount(durationSeconds, targetFps) {
   if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0;
+  if (!Number.isFinite(targetFps) || targetFps <= 0) return 0;
   return Math.floor(durationSeconds * targetFps) + 1;
 }

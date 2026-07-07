@@ -30,3 +30,11 @@ test("estimateSampleCount bounds buffer sizing", () => {
   assert.equal(estimateSampleCount(0, 4), 0);
   assert.equal(estimateSampleCount(-5, 4), 0);
 });
+
+test("estimateSampleCount rejects a non-finite or non-positive rate", () => {
+  // A bad rate must never leak NaN or a negative count into buffer sizing.
+  assert.equal(estimateSampleCount(10, Number.NaN), 0);
+  assert.equal(estimateSampleCount(10, Infinity), 0);
+  assert.equal(estimateSampleCount(10, 0), 0);
+  assert.equal(estimateSampleCount(10, -4), 0);
+});
