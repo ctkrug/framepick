@@ -9,6 +9,8 @@ import {
 } from "../src/lib/sensitivity.js";
 import { computeStats } from "../src/lib/stats.js";
 import { formatTimecode, timecodeSlug } from "../src/lib/timecode.js";
+import { shouldSample, sampleInterval } from "../src/lib/sampler.js";
+import { extractKeyframes } from "../src/lib/scenes.js";
 
 // Property-based tests: instead of a handful of hand-picked examples, hammer each pure function
 // with many deterministic pseudo-random inputs and assert the invariants that must always hold.
@@ -134,5 +136,47 @@ test("timecodeSlug is always filename-safe with a three-digit ms field", () => {
     const secs = rand() * 100000 - 500; // includes negatives (clamped to 0)
     const slug = timecodeSlug(secs);
     assert.match(slug, /^\d+m\d\ds\d{3}$/, `unsafe slug: ${slug}`);
+  }
+});
+
+test("greedy shouldSample never keeps two frames closer than the interval", () => {
+  const rand = rng(29);
+  for (let k = 0; k < 200; k++) {
+    const fps = 1 + rand() * 30; // 1..31 fps
+    const interval = sampleInterval(fps);
+    const kept = [];
+    let last = null;
+    let t = 0;
+    for (let i = 0; i < 60; i++) {
+      t += rand() * 0.4; // monotonically increasing frame times
+      if (shouldSample(last, t, fps)) {
+        kept.push(t);
+        last = t;
+      }
+    }
+    for (let i = 1; i < kept.length; i++) {
+      assert.ok(kept[i] - kept[i - 1] >= interval - 1e-6, `gap ${kept[i] - kept[i - 1]} < ${interval}`);
+    }
+  }
+});
+
+test("extractKeyframes output is a time-ordered subset of the input", () => {
+  const rand = rng(31);
+  for (let k = 0; k < 200; k++) {
+    const n = Math.floor(rand() * 25);
+    const samples = [];
+    let t = 0;
+    for (let i = 0; i < n; i++) {
+      t += rand() * 0.6;
+      samples.push({ index: i, time: t, signature: randomSignature(rand) });
+    }
+    const times = new Set(samples.map((s) => s.time));
+    const out = extractKeyframes(samples, { threshold: rand() });
+    // Never fabricates a frame, never reorders: strictly increasing times drawn from the input.
+    for (let i = 0; i < out.length; i++) {
+      assert.ok(times.has(out[i].time), "keyframe came from the input");
+      if (i > 0) assert.ok(out[i].time > out[i - 1].time, "keyframes are strictly time-ordered");
+    }
+    assert.ok(out.length <= samples.length);
   }
 });
