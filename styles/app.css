@@ -251,20 +251,10 @@ body {
 .dropzone-glyph {
   width: 64px;
   height: 64px;
-  border-radius: 6px;
-  background: var(--accent);
-  box-shadow: 0 6px 18px rgba(226, 69, 43, 0.28);
-  /* Sprocket-punched film cell — the wordmark glyph, drawn in CSS. */
-  -webkit-mask: radial-gradient(circle at 22% 26%, transparent 3px, #000 3.5px),
-    radial-gradient(circle at 78% 26%, transparent 3px, #000 3.5px),
-    radial-gradient(circle at 22% 74%, transparent 3px, #000 3.5px),
-    radial-gradient(circle at 78% 74%, transparent 3px, #000 3.5px);
-  -webkit-mask-composite: source-in, source-in, source-in;
-  mask: radial-gradient(circle at 22% 26%, transparent 3px, #000 3.5px),
-    radial-gradient(circle at 78% 26%, transparent 3px, #000 3.5px),
-    radial-gradient(circle at 22% 74%, transparent 3px, #000 3.5px),
-    radial-gradient(circle at 78% 74%, transparent 3px, #000 3.5px);
-  mask-composite: intersect;
+  /* Sprocket-punched film cell — the brand glyph, drawn as an inline SVG (no binary asset). */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='8' fill='%23e2452b'/%3E%3Crect x='14' y='6' width='20' height='36' rx='2' fill='%23f7f3ea'/%3E%3Cg fill='%23efe9dd'%3E%3Crect x='5' y='7' width='4' height='4' rx='1'/%3E%3Crect x='5' y='16' width='4' height='4' rx='1'/%3E%3Crect x='5' y='25' width='4' height='4' rx='1'/%3E%3Crect x='5' y='34' width='4' height='4' rx='1'/%3E%3Crect x='39' y='7' width='4' height='4' rx='1'/%3E%3Crect x='39' y='16' width='4' height='4' rx='1'/%3E%3Crect x='39' y='25' width='4' height='4' rx='1'/%3E%3Crect x='39' y='34' width='4' height='4' rx='1'/%3E%3C/g%3E%3C/svg%3E")
+    center / contain no-repeat;
+  filter: drop-shadow(0 6px 14px rgba(226, 69, 43, 0.28));
 }
 
 .dropzone-note {
