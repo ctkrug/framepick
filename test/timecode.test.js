@@ -40,3 +40,26 @@ test("timecodeSlug is filename-safe", () => {
   assert.equal(timecodeSlug(0), "00m00s000");
   assert.match(timecodeSlug(125.5), /^\d\dm\d\ds\d{3}$/);
 });
+
+test("formatTimecode handles multi-hour and multi-digit-hour clips", () => {
+  assert.equal(formatTimecode(3600), "01:00:00.000");
+  // Past 100 hours the hours field just widens; it never truncates or overflows.
+  assert.equal(formatTimecode(360000), "100:00:00.000");
+});
+
+test("formatTimecode floors sub-millisecond noise to zero", () => {
+  assert.equal(formatTimecode(0.0004), "00:00.000");
+  assert.equal(formatTimecode(12.3456), "00:12.346"); // rounds to nearest ms
+});
+
+test("formatTimecode never emits NaN or negatives for bad input", () => {
+  assert.equal(formatTimecode(NaN), "00:00.000");
+  assert.equal(formatTimecode(-42), "00:00.000");
+  assert.equal(formatTimecode(Infinity), "00:00.000");
+});
+
+test("timecodeSlug stays filename-safe past an hour", () => {
+  // Minutes accumulate rather than rolling into an hours field; still safe chars.
+  assert.equal(timecodeSlug(3661.25), "61m01s250");
+  assert.match(timecodeSlug(7325.9), /^\d+m\d\ds\d{3}$/);
+});
