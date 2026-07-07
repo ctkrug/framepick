@@ -12,6 +12,9 @@ const LOCAL_SIG = 0x04034b50;
 const CENTRAL_SIG = 0x02014b50;
 const EOCD_SIG = 0x06054b50;
 const VERSION = 20; // 2.0 — the minimum that supports the fields we write
+// General-purpose flag bit 11: filenames are UTF-8. We always encode names as UTF-8, so we
+// always set it — extractors that honor it decode non-ASCII names correctly instead of as CP437.
+const FLAG_UTF8 = 0x0800;
 
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
@@ -58,7 +61,7 @@ export function zipStore(files) {
     const lv = new DataView(local.buffer);
     lv.setUint32(0, LOCAL_SIG, true);
     lv.setUint16(4, VERSION, true);
-    lv.setUint16(6, 0, true); // flags
+    lv.setUint16(6, FLAG_UTF8, true); // flags: UTF-8 filename
     lv.setUint16(8, 0, true); // method: store
     lv.setUint16(10, 0, true); // mod time (fixed — archives are deterministic)
     lv.setUint16(12, 0x21, true); // mod date: 1980-01-01
@@ -76,7 +79,7 @@ export function zipStore(files) {
     cv.setUint32(0, CENTRAL_SIG, true);
     cv.setUint16(4, VERSION, true); // version made by
     cv.setUint16(6, VERSION, true); // version needed
-    cv.setUint16(8, 0, true); // flags
+    cv.setUint16(8, FLAG_UTF8, true); // flags: UTF-8 filename
     cv.setUint16(10, 0, true); // method
     cv.setUint16(12, 0, true); // mod time
     cv.setUint16(14, 0x21, true); // mod date
