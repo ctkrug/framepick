@@ -7,7 +7,7 @@
   --ink: #211d17;
   --muted: #6f6656;
   --line: #d3c9b4;
-  --accent: #e2452b;
+  --accent: #d63e26;
   --accent-ink: #a8321d;
   --support: #2f4a53;
   --success: #3f7d55;
@@ -162,7 +162,8 @@ body {
 }
 
 .btn:hover {
-  background: #ec5138;
+  /* Deepen on hover — a lighter vermilion would drop white text below WCAG AA. */
+  background: #c9381f;
 }
 
 .btn:active {
@@ -252,9 +253,9 @@ body {
   width: 64px;
   height: 64px;
   /* Sprocket-punched film cell — the brand glyph, drawn as an inline SVG (no binary asset). */
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='8' fill='%23e2452b'/%3E%3Crect x='14' y='6' width='20' height='36' rx='2' fill='%23f7f3ea'/%3E%3Cg fill='%23efe9dd'%3E%3Crect x='5' y='7' width='4' height='4' rx='1'/%3E%3Crect x='5' y='16' width='4' height='4' rx='1'/%3E%3Crect x='5' y='25' width='4' height='4' rx='1'/%3E%3Crect x='5' y='34' width='4' height='4' rx='1'/%3E%3Crect x='39' y='7' width='4' height='4' rx='1'/%3E%3Crect x='39' y='16' width='4' height='4' rx='1'/%3E%3Crect x='39' y='25' width='4' height='4' rx='1'/%3E%3Crect x='39' y='34' width='4' height='4' rx='1'/%3E%3C/g%3E%3C/svg%3E")
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='8' fill='%23d63e26'/%3E%3Crect x='14' y='6' width='20' height='36' rx='2' fill='%23f7f3ea'/%3E%3Cg fill='%23efe9dd'%3E%3Crect x='5' y='7' width='4' height='4' rx='1'/%3E%3Crect x='5' y='16' width='4' height='4' rx='1'/%3E%3Crect x='5' y='25' width='4' height='4' rx='1'/%3E%3Crect x='5' y='34' width='4' height='4' rx='1'/%3E%3Crect x='39' y='7' width='4' height='4' rx='1'/%3E%3Crect x='39' y='16' width='4' height='4' rx='1'/%3E%3Crect x='39' y='25' width='4' height='4' rx='1'/%3E%3Crect x='39' y='34' width='4' height='4' rx='1'/%3E%3C/g%3E%3C/svg%3E")
     center / contain no-repeat;
-  filter: drop-shadow(0 6px 14px rgba(226, 69, 43, 0.28));
+  filter: drop-shadow(0 6px 14px rgba(214, 62, 38, 0.28));
 }
 
 .dropzone-note {
@@ -373,10 +374,10 @@ body {
   transform: scale(0.94);
 }
 .slider:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 4px rgba(226, 69, 43, 0.35);
+  box-shadow: 0 0 0 4px rgba(214, 62, 38, 0.35);
 }
 .slider:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 4px rgba(226, 69, 43, 0.35);
+  box-shadow: 0 0 0 4px rgba(214, 62, 38, 0.35);
 }
 
 /* ---- Stats readout ------------------------------------------------------ */
