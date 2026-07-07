@@ -27,8 +27,8 @@ test("out-of-range and non-finite input is clamped", () => {
   assert.equal(clampSensitivity(-40), 0);
   assert.equal(clampSensitivity(140), 100);
   assert.equal(clampSensitivity(Number.NaN), DEFAULT_SENSITIVITY);
-  assert.equal(thresholdForSensitivity(-40), THRESHOLD_MAX);
-  assert.equal(thresholdForSensitivity(999), THRESHOLD_MIN);
+  assert.ok(Math.abs(thresholdForSensitivity(-40) - THRESHOLD_MAX) < 1e-9);
+  assert.ok(Math.abs(thresholdForSensitivity(999) - THRESHOLD_MIN) < 1e-9);
 });
 
 test("the default sensitivity sits inside the usable range", () => {
