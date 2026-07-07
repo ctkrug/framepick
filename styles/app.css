@@ -61,12 +61,25 @@ body {
 
 .masthead {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 16px 24px;
   flex-wrap: wrap;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gh-link {
+  flex-shrink: 0;
+  text-decoration: none;
+  white-space: nowrap;
+  align-self: center;
 }
 
 .wordmark {
@@ -638,6 +651,66 @@ body {
 .toast::before {
   content: "✓ ";
   color: var(--success);
+}
+
+/* ---- About / FAQ (below the fold, search-facing) ----------------------- */
+
+.about {
+  margin-top: 56px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+  max-width: 68ch;
+}
+
+.about h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 31px;
+  margin: 0 0 16px;
+}
+
+.about h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  margin: 32px 0 12px;
+}
+
+.about p {
+  color: var(--ink);
+  margin: 0 0 14px;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--ink);
+}
+
+.steps li {
+  margin-bottom: 8px;
+}
+
+.faq {
+  margin: 0;
+}
+
+.faq dt {
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+.faq dd {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.about code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: var(--radius-ctl);
 }
 
 @media (prefers-reduced-motion: reduce) {

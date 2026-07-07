@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Framepick — scene-change keyframes, in your browser</title>
+    <title>Framepick — Pull the keyframes from any clip, no upload</title>
     <meta
       name="description"
-      content="Drop in a video, get back its deduplicated scene-change keyframes with timestamps — entirely client-side via WebCodecs. No upload, no server."
+      content="Drop in a video and Framepick pulls one keyframe per scene, each stamped with its timecode, entirely in your browser with WebCodecs. No upload, no server, no account."
     />
     <meta name="theme-color" content="#efe9dd" />
     <!-- The paper direction is light-only; opt out of forced-dark so native controls stay on-brand. -->
@@ -14,10 +14,10 @@
 
     <!-- Social preview -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Framepick — scene-change keyframes, in your browser" />
+    <meta property="og:title" content="Framepick — Pull the keyframes from any clip, no upload" />
     <meta
       property="og:description"
-      content="Drop in a video, get back its deduplicated scene-change keyframes with timestamps — entirely client-side via WebCodecs. No upload, no server."
+      content="Drop in a video and Framepick pulls one keyframe per scene, each stamped with its timecode, entirely in your browser with WebCodecs. No upload, no server, no account."
     />
     <meta name="twitter:card" content="summary" />
 
@@ -41,11 +41,16 @@
   <body>
     <div class="page">
       <header class="masthead">
-        <h1 class="wordmark">Framep<span class="dot">i</span>ck</h1>
-        <p class="tagline">
-          Drop in a video — get back its scene-change keyframes, with timestamps. No upload,
-          no server. Everything runs in your browser.
-        </p>
+        <div class="brand">
+          <h1 class="wordmark">Framep<span class="dot">i</span>ck</h1>
+          <p class="tagline">
+            Drop in a clip and get one keyframe per scene, each stamped with its timecode. It
+            runs in your browser with WebCodecs, so the video never leaves your machine.
+          </p>
+        </div>
+        <a class="btn ghost gh-link" href="https://github.com/ctkrug/framepick">
+          View on GitHub
+        </a>
       </header>
 
       <noscript>
@@ -60,7 +65,7 @@
           <section class="dropzone" id="dropzone" aria-label="Video dropzone">
             <span class="dropzone-glyph" aria-hidden="true"></span>
             <h2>Drop a video here</h2>
-            <p>Or choose a file. It’s decoded on-device with WebCodecs — nothing is uploaded.</p>
+            <p>Or choose a file. It’s decoded on-device with WebCodecs, so nothing is uploaded.</p>
             <label>
               <input class="file-input" id="fileInput" type="file" accept="video/*" />
               <span class="btn" role="button" tabindex="0" id="pickBtn">Choose video…</span>
@@ -115,7 +120,7 @@
           </div>
           <div class="filmstrip" id="filmstrip" role="list"></div>
           <p class="results-empty" id="resultsEmpty" hidden>
-            No keyframes at this sensitivity — drag toward “More keyframes”.
+            No keyframes at this sensitivity. Drag toward “More keyframes”.
           </p>
         </section>
       </main>
@@ -128,9 +133,61 @@
       <div class="notice" id="status" hidden aria-live="polite"></div>
       <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
+      <section class="about" aria-labelledby="aboutHeading">
+        <h2 id="aboutHeading">How Framepick works</h2>
+        <p>
+          Framepick pulls the representative frames out of a video: one keyframe per scene, so
+          you get a contact sheet of shots instead of thousands of near-identical frames. It
+          decodes the file with the WebCodecs API, measures how much each sampled frame differs
+          from the one before it, and marks a new scene wherever that difference spikes.
+          Near-duplicate shots are collapsed, and every surviving keyframe keeps the exact
+          timecode it came from.
+        </p>
+        <p>
+          Because the decode runs in a Web Worker on your own machine, nothing is uploaded. A
+          private cut, an unreleased trailer, or a 200 MB screen recording stays on your disk.
+          There is no account, no queue, and no server bill behind it.
+        </p>
+
+        <h3>Using it</h3>
+        <ol class="steps">
+          <li>Drop a video onto the page, or click Choose video. MP4 and MOV files with H.264 or
+            HEVC decode best.</li>
+          <li>Wait for the on-device decode to finish. Progress updates as it walks the clip.</li>
+          <li>Drag the sensitivity slider to trade fewer, harder cuts against more, subtler ones.
+            The contact sheet updates instantly because it re-segments cached frames instead of
+            decoding again.</li>
+          <li>Hover any frame to save it as a PNG, or grab every keyframe at once as a zip.</li>
+        </ol>
+
+        <h3>Questions people ask</h3>
+        <dl class="faq">
+          <dt>Does my video get uploaded anywhere?</dt>
+          <dd>No. Framepick decodes the file locally with WebCodecs and never sends a byte over
+            the network. You can prove it by loading a clip with your connection switched off.</dd>
+
+          <dt>Which browsers work?</dt>
+          <dd>Any browser with the WebCodecs <code>VideoDecoder</code>: recent Chrome, Edge, and
+            Safari. Framepick checks on load and tells you if yours is missing it.</dd>
+
+          <dt>What video formats can I use?</dt>
+          <dd>MP4 and MOV containers with H.264 or HEVC video, the formats most cameras and screen
+            recorders produce.</dd>
+
+          <dt>How does it decide what counts as a scene?</dt>
+          <dd>It reduces each sampled frame to a small brightness grid and compares neighbours. A
+            large jump marks a cut. The sensitivity slider sets how large that jump has to be.</dd>
+
+          <dt>Can I use the keyframes commercially?</dt>
+          <dd>They are frames from your own video, so they are yours. Framepick itself is MIT
+            licensed.</dd>
+        </dl>
+      </section>
+
       <footer class="footer">
-        <span>Framepick — client-side keyframe extraction.</span>
+        <span>Framepick, client-side keyframe extraction.</span>
         <a href="https://github.com/ctkrug/framepick">Source on GitHub</a>
+        <a href="https://apps.charliekrug.com">More by Charlie Krug</a>
         <span>MIT © Charlie Krug</span>
       </footer>
     </div>
