@@ -38,18 +38,67 @@
       </header>
 
       <main class="stage" id="stage">
-        <section class="dropzone" id="dropzone" aria-label="Video dropzone">
-          <h2>Drop a video here</h2>
-          <p>Or choose a file. It’s decoded on-device with WebCodecs — nothing is uploaded.</p>
-          <label>
-            <input
-              class="file-input"
-              id="fileInput"
-              type="file"
-              accept="video/*"
-            />
-            <span class="btn" role="button" tabindex="0" id="pickBtn">Choose video…</span>
-          </label>
+        <aside class="rail">
+          <section class="dropzone" id="dropzone" aria-label="Video dropzone">
+            <span class="dropzone-glyph" aria-hidden="true"></span>
+            <h2>Drop a video here</h2>
+            <p>Or choose a file. It’s decoded on-device with WebCodecs — nothing is uploaded.</p>
+            <label>
+              <input class="file-input" id="fileInput" type="file" accept="video/*" />
+              <span class="btn" role="button" tabindex="0" id="pickBtn">Choose video…</span>
+            </label>
+            <span class="dropzone-note" id="fileName" hidden></span>
+          </section>
+
+          <section class="panel controls" id="controls" hidden aria-label="Analysis controls">
+            <div class="field">
+              <div class="field-head">
+                <label for="sensitivity">Sensitivity</label>
+                <span class="field-value" id="sensValue">55</span>
+              </div>
+              <input
+                class="slider"
+                id="sensitivity"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value="55"
+                aria-describedby="sensHint"
+              />
+              <div class="field-scale" id="sensHint">
+                <span>Fewer keyframes</span><span>More keyframes</span>
+              </div>
+            </div>
+
+            <dl class="stats" id="stats">
+              <div class="stat"><dt>Duration</dt><dd id="statDuration">—</dd></div>
+              <div class="stat"><dt>Frames sampled</dt><dd id="statSampled">—</dd></div>
+              <div class="stat"><dt>Scenes found</dt><dd id="statScenes">—</dd></div>
+              <div class="stat"><dt>Keyframes kept</dt><dd id="statKept">—</dd></div>
+            </dl>
+
+            <button class="btn export-all" id="downloadAll" type="button" disabled>
+              Download all as .zip
+            </button>
+          </section>
+        </aside>
+
+        <section class="results" id="results" hidden aria-label="Keyframe contact sheet">
+          <div class="progress" id="progress" hidden>
+            <div class="progress-scan" aria-hidden="true"></div>
+            <div class="progress-row">
+              <span class="progress-label" id="progressLabel" aria-live="polite">Analyzing…</span>
+              <span class="progress-pct" id="progressPct">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+          </div>
+          <div class="filmstrip" id="filmstrip" role="list"></div>
+          <p class="results-empty" id="resultsEmpty" hidden>
+            No keyframes at this sensitivity — drag toward “More keyframes”.
+          </p>
         </section>
       </main>
 
@@ -57,7 +106,9 @@
         This browser doesn’t support the WebCodecs <code>VideoDecoder</code> API, which Framepick
         needs to decode video on-device. Try a recent Chrome, Edge, or Safari.
       </div>
+      <div class="notice warn" id="error" hidden role="alert"></div>
       <div class="notice" id="status" hidden aria-live="polite"></div>
+      <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
       <footer class="footer">
         <span>Framepick — client-side keyframe extraction.</span>
