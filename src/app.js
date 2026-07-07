@@ -303,20 +303,25 @@ function initDropzone() {
 
   els.fileInput.addEventListener("change", () => startAnalysis(els.fileInput.files[0]));
 
-  ["dragenter", "dragover"].forEach((type) =>
-    dz.addEventListener(type, (e) => {
-      e.preventDefault();
-      dz.classList.add("dragover");
-    }),
-  );
-  ["dragleave", "drop"].forEach((type) =>
-    dz.addEventListener(type, (e) => {
-      e.preventDefault();
-      if (type === "dragleave" && dz.contains(e.relatedTarget)) return;
-      dz.classList.remove("dragover");
-    }),
-  );
-  dz.addEventListener("drop", (e) => startAnalysis(e.dataTransfer?.files?.[0]));
+  // Drop anywhere on the page — a small dropzone is a small target. preventDefault on dragover is
+  // required or the browser navigates to the dropped file. The dropzone highlights as the cue.
+  let dragDepth = 0;
+  window.addEventListener("dragenter", (e) => {
+    if (!e.dataTransfer?.types?.includes("Files")) return;
+    dragDepth++;
+    dz.classList.add("dragover");
+  });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("dragleave", () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) dz.classList.remove("dragover");
+  });
+  window.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dragDepth = 0;
+    dz.classList.remove("dragover");
+    startAnalysis(e.dataTransfer?.files?.[0]);
+  });
 }
 
 function initControls() {
