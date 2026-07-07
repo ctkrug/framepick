@@ -44,7 +44,11 @@ const state = {
   meta: null, // { durationSeconds, width, height }
   worker: null,
   toastTimer: 0,
+  watchdog: 0,
 };
+
+/** If the worker goes silent for this long mid-analysis, treat the file as unprocessable. */
+const WATCHDOG_MS = 20000;
 
 // ---- Small UI helpers -----------------------------------------------------
 
@@ -105,7 +109,19 @@ function downloadBlob(blob, filename) {
 
 // ---- Analysis lifecycle ---------------------------------------------------
 
+function pokeWatchdog() {
+  clearTimeout(state.watchdog);
+  state.watchdog = setTimeout(() => {
+    if (state.samples.length === 0) {
+      resetState();
+      showError("Decoding stalled — this file may be corrupt, DRM-protected, or an unsupported codec.");
+      els.progress.hidden = true;
+    }
+  }, WATCHDOG_MS);
+}
+
 function resetState() {
+  clearTimeout(state.watchdog);
   if (state.worker) {
     state.worker.terminate();
     state.worker = null;
@@ -147,9 +163,11 @@ function startAnalysis(file) {
     e.preventDefault?.();
   };
   worker.postMessage({ type: "analyze", file });
+  pokeWatchdog();
 }
 
 function onWorkerMessage(msg) {
+  pokeWatchdog();
   switch (msg?.type) {
     case "meta":
       state.meta = { durationSeconds: msg.durationSeconds, width: msg.width, height: msg.height };
@@ -172,6 +190,7 @@ function onWorkerMessage(msg) {
       finishAnalysis();
       break;
     case "error":
+      clearTimeout(state.watchdog);
       showError(msg.message || "Could not decode this file.");
       els.progress.hidden = true;
       break;
@@ -181,6 +200,7 @@ function onWorkerMessage(msg) {
 }
 
 function finishAnalysis() {
+  clearTimeout(state.watchdog);
   els.progress.hidden = true;
   if (state.samples.length === 0) {
     showError("No frames could be read from this file. It may be DRM-protected or corrupt.");
