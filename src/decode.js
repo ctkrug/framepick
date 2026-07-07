@@ -34,8 +34,8 @@ export const DEFAULT_MAX_EDGE = 1280;
  * @property {(info: {durationSeconds:number,width:number,height:number}) => void} [onMeta]
  */
 
-/** Fit (w,h) inside a maxEdge box, preserving aspect ratio; never upscales. */
-function fitWithin(w, h, maxEdge) {
+/** Fit (w,h) inside a maxEdge box, preserving aspect ratio; never upscales. Exported for tests. */
+export function fitWithin(w, h, maxEdge) {
   const scale = Math.min(1, maxEdge / Math.max(w, h));
   return { w: Math.max(1, Math.round(w * scale)), h: Math.max(1, Math.round(h * scale)) };
 }
