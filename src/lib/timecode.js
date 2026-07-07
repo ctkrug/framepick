@@ -59,8 +59,12 @@ export function timeToFrame(seconds, fps) {
  */
 export function timecodeSlug(seconds) {
   const t = clampTime(seconds);
-  const totalSeconds = Math.floor(t);
-  const ms = Math.round((t - totalSeconds) * 1000);
+  const whole = Math.floor(t);
+  const rawMs = Math.round((t - whole) * 1000);
+  // Rounding can push ms to 1000; carry it into the seconds so the field stays 3 digits.
+  const carry = rawMs === 1000 ? 1 : 0;
+  const totalSeconds = whole + carry;
+  const ms = carry ? 0 : rawMs;
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   const pad = (n, w = 2) => String(n).padStart(w, "0");
