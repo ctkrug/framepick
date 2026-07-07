@@ -82,6 +82,7 @@ export async function decodeToSamples(file, opts = {}) {
   return new Promise((resolve, reject) => {
     const samples = [];
     let index = 0;
+    let ready = false;
     let lastKeptTime = null;
     let durationSeconds = 0;
     let expectedSamples = Infinity;
@@ -148,6 +149,7 @@ export async function decodeToSamples(file, opts = {}) {
     mp4.onError = (e) => fail(new Error(`Could not demux this file (${e}).`));
 
     mp4.onReady = (info) => {
+      ready = true;
       const track = info.videoTracks[0];
       if (!track) {
         fail(new Error("No video track found — is this a video file?"));
@@ -200,6 +202,12 @@ export async function decodeToSamples(file, opts = {}) {
     buffer.fileStart = 0;
     mp4.appendBuffer(buffer);
     mp4.flush();
+
+    // The whole file was appended; if mp4box never reached onReady, there is no parseable moov
+    // (not an MP4/MOV, or truncated). Fail fast instead of waiting on the app-level watchdog.
+    if (!ready) {
+      fail(new Error("No decodable video track found — is this a complete MP4/MOV file?"));
+    }
   });
 }
 
