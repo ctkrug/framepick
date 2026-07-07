@@ -43,6 +43,7 @@ const state = {
   keyframes: [],
   meta: null, // { durationSeconds, width, height }
   worker: null,
+  analyzing: false,
   toastTimer: 0,
   watchdog: 0,
 };
@@ -113,19 +114,47 @@ function pokeWatchdog() {
   clearTimeout(state.watchdog);
   state.watchdog = setTimeout(() => {
     if (state.samples.length === 0) {
+      destroyWorker();
+      state.analyzing = false;
       resetState();
       showError("Decoding stalled — this file may be corrupt, DRM-protected, or an unsupported codec.");
       els.progress.hidden = true;
+      els.results.setAttribute("aria-busy", "false");
     }
   }, WATCHDOG_MS);
 }
 
-function resetState() {
-  clearTimeout(state.watchdog);
+function destroyWorker() {
   if (state.worker) {
     state.worker.terminate();
     state.worker = null;
   }
+}
+
+/**
+ * Get (or lazily create) the analysis worker. Pre-warmed at load so a decode started after the
+ * network goes offline needs no fresh module fetch — the file is still decoded entirely on-device.
+ */
+function ensureWorker() {
+  if (state.worker) return state.worker;
+  const worker = new Worker(new URL("./worker/analyze.worker.js", import.meta.url), {
+    type: "module",
+  });
+  worker.onmessage = (e) => onWorkerMessage(e.data);
+  worker.onerror = (e) => {
+    state.analyzing = false;
+    clearTimeout(state.watchdog);
+    showError("The analysis worker failed to start. Try a recent Chrome, Edge, or Safari.");
+    els.progress.hidden = true;
+    els.results.setAttribute("aria-busy", "false");
+    e.preventDefault?.();
+  };
+  state.worker = worker;
+  return worker;
+}
+
+function resetState() {
+  clearTimeout(state.watchdog);
   for (const s of state.samples) s.bitmap?.close?.();
   state.samples = [];
   state.keyframes = [];
@@ -140,7 +169,10 @@ function startAnalysis(file) {
     return;
   }
   clearError();
+  // Cancel any in-flight decode by tearing down its (blocked) worker; an idle worker is reused.
+  if (state.analyzing) destroyWorker();
   resetState();
+  state.analyzing = true;
 
   els.fileName.textContent = file.name;
   els.fileName.hidden = false;
@@ -153,17 +185,7 @@ function startAnalysis(file) {
   els.progressLabel.textContent = "Decoding on-device…";
   setProgress(0);
 
-  const worker = new Worker(new URL("./worker/analyze.worker.js", import.meta.url), {
-    type: "module",
-  });
-  state.worker = worker;
-  worker.onmessage = (e) => onWorkerMessage(e.data);
-  worker.onerror = (e) => {
-    showError("The analysis worker failed to start. Try a recent Chrome, Edge, or Safari.");
-    els.progress.hidden = true;
-    e.preventDefault?.();
-  };
-  worker.postMessage({ type: "analyze", file });
+  ensureWorker().postMessage({ type: "analyze", file });
   pokeWatchdog();
 }
 
@@ -192,6 +214,7 @@ function onWorkerMessage(msg) {
       break;
     case "error":
       clearTimeout(state.watchdog);
+      state.analyzing = false;
       els.results.setAttribute("aria-busy", "false");
       showError(msg.message || "Could not decode this file.");
       els.progress.hidden = true;
@@ -203,6 +226,7 @@ function onWorkerMessage(msg) {
 
 function finishAnalysis() {
   clearTimeout(state.watchdog);
+  state.analyzing = false;
   els.results.setAttribute("aria-busy", "false");
   els.progress.hidden = true;
   if (state.samples.length === 0) {
@@ -348,6 +372,7 @@ function main() {
   }
   initDropzone();
   initControls();
+  ensureWorker(); // pre-warm so the first decode needs no fetch (works offline after load)
 }
 
 main();
