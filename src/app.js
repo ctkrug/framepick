@@ -320,7 +320,9 @@ async function exportAll() {
 function initDropzone() {
   const dz = els.dropzone;
 
-  els.pickBtn.addEventListener("click", () => els.fileInput.click());
+  // The <label> wrapping the input already forwards a mouse click to it, so a JS click handler
+  // here would open the file chooser twice. Only synthesize the open for keyboard activation,
+  // which the label does not handle for a non-native-control span.
   els.pickBtn.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
