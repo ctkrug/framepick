@@ -50,3 +50,19 @@ test("signatureDistance is 0 for identical, positive for different", () => {
 test("signatureDistance rejects mismatched lengths", () => {
   assert.throws(() => signatureDistance([1, 2], [1]), RangeError);
 });
+
+test("signatureDistance of two empty signatures is 0, not NaN", () => {
+  assert.equal(signatureDistance(new Float32Array(0), new Float32Array(0)), 0);
+  assert.equal(signatureDistance([], []), 0);
+});
+
+test("frameSignature zeroes cells that receive no pixels", () => {
+  // A grid finer than the source leaves some cells empty; those must read 0,
+  // never NaN from a divide-by-zero. 2x2 source into a 4x4 grid: only the even
+  // rows/cols catch a pixel.
+  const sig = frameSignature(solid(2, 2, [255, 255, 255]), 2, 2, { cols: 4, rows: 4 });
+  assert.equal(sig.length, 16);
+  for (const v of sig) assert.ok(Number.isFinite(v) && v >= 0 && v <= 1);
+  assert.ok(sig.some((v) => v === 0), "some cells got no pixels and read 0");
+  assert.ok(sig.some((v) => Math.abs(v - 1) < 1e-6), "populated cells read white");
+});
