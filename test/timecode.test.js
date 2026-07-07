@@ -63,3 +63,10 @@ test("timecodeSlug stays filename-safe past an hour", () => {
   assert.equal(timecodeSlug(3661.25), "61m01s250");
   assert.match(timecodeSlug(7325.9), /^\d+m\d\ds\d{3}$/);
 });
+
+test("timecodeSlug carries a rounded-up millisecond into the seconds", () => {
+  // 59.9996s rounds to 1000ms; it must carry into the seconds, not emit "s1000".
+  assert.equal(timecodeSlug(59.9996), "01m00s000");
+  assert.equal(timecodeSlug(3599.9996), "60m00s000");
+  assert.match(timecodeSlug(59.9996), /s\d{3}$/); // exactly three ms digits
+});
