@@ -67,11 +67,15 @@ list — no re-decode, no file re-read. That's what makes the sensitivity contro
 
 ## Testing strategy
 
-The pure layer carries the correctness burden and is fully covered by `node --test`
-(`test/*.test.js`): timecode formatting/rounding, signature normalization/distance, sampler
-cadence, scene/dedup behavior on synthetic frame streams, the sensitivity→threshold map, the
-stats invariant, and the ZIP writer (round-tripped + CRC vectors). The browser layer is
-intentionally thin glue over that tested core, exercised manually per the QA design self-review
-in `docs/DESIGN.md` (§D3) — and end-to-end against a generated multi-scene MP4 in headless
-Chromium (decode → contact sheet → slider re-segmentation → PNG/zip export, asserting no console
-errors and no layout overflow).
+The pure layer carries the correctness burden and is fully covered (100% line/branch) by
+`node --test` (`test/*.test.js`): timecode formatting/rounding, signature normalization/distance,
+sampler cadence, scene/dedup behavior on synthetic frame streams, the sensitivity→threshold map,
+the stats invariant, and the ZIP writer (round-tripped + CRC vectors). `decode.js` is browser-only,
+but its stdlib-safe seams — `analyzeFrame`, `keepFrame`, and the `fitWithin` aspect-fit helper —
+are pinned in `test/decode.test.js`. Beyond example-based tests, `test/properties.test.js` runs
+seeded property-based invariants (distance symmetry/bounds/triangle, sensitivity monotonicity, the
+`keyframesKept ≤ scenesFound ≤ framesSampled` display invariant, timecode shape) over hundreds of
+deterministic random inputs. The browser layer is intentionally thin glue over that tested core,
+exercised manually per the QA design self-review in `docs/DESIGN.md` (§D3) — and end-to-end against
+a generated multi-scene MP4 in headless Chromium (decode → contact sheet → slider re-segmentation →
+PNG/zip export, asserting no console errors and no layout overflow).
