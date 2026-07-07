@@ -23,11 +23,15 @@ strip.
 | `--ink` | `#211d17` | primary text, wordmark, near-black |
 | `--muted` | `#6f6656` | secondary text, timecodes, captions |
 | `--line` | `#d3c9b4` | hairline borders, grid rules |
-| `--accent` | `#e2452b` | vermilion — clapper mark, primary CTA, active cut, focus ring |
+| `--accent` | `#d63e26` | vermilion — clapper mark, primary CTA, active cut, focus ring |
 | `--accent-ink` | `#a8321d` | pressed/hover-darkened accent |
 | `--support` | `#2f4a53` | deep slate-teal — links, secondary controls, sprocket holes |
 | `--success` | `#3f7d55` | valid file / export complete |
 | `--danger` | `#b23a2a` | unsupported browser / decode error |
+
+> **Accent note (QA):** `--accent` was deepened from `#e2452b` to `#d63e26` so white button
+> text clears WCAG AA (4.5:1) — the original vermilion reached only 4.10:1 on the filled CTA.
+> The shift is imperceptible against paper but makes every white-on-accent surface accessible.
 
 - **Type pairing:** display **Fraunces** (high-contrast editorial serif, `opsz` optical size)
   for the wordmark and headings; UI **Inter** for body, controls, and timecodes. Timecodes and
