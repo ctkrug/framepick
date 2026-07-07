@@ -146,6 +146,7 @@ function startAnalysis(file) {
   els.fileName.hidden = false;
   els.stage.classList.add("has-results");
   els.results.hidden = false;
+  els.results.setAttribute("aria-busy", "true");
   els.controls.hidden = true;
   els.resultsEmpty.hidden = true;
   els.progress.hidden = false;
@@ -191,6 +192,7 @@ function onWorkerMessage(msg) {
       break;
     case "error":
       clearTimeout(state.watchdog);
+      els.results.setAttribute("aria-busy", "false");
       showError(msg.message || "Could not decode this file.");
       els.progress.hidden = true;
       break;
@@ -201,6 +203,7 @@ function onWorkerMessage(msg) {
 
 function finishAnalysis() {
   clearTimeout(state.watchdog);
+  els.results.setAttribute("aria-busy", "false");
   els.progress.hidden = true;
   if (state.samples.length === 0) {
     showError("No frames could be read from this file. It may be DRM-protected or corrupt.");
